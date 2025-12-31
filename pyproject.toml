@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "cine-catch"
+version = "0.1.0"
+description = ""
+authors = ["Gyanni <lghlee36@gmail.com>"]
+readme = "README.md"
+package-mode = false  # <--- 여기가 올바른 위치입니다!
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.128.0"
+uvicorn = {extras = ["standard"], version = "^0.40.0"}
+sqlalchemy = "^2.0.45"
+asyncpg = "^0.31.0"
+geoalchemy2 = "^0.18.1"
+pydantic-settings = "^2.12.0"
+python-dotenv = "^1.2.1"
+greenlet = "^3.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

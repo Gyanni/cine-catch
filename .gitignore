@@ -1,12 +1,7 @@
-# Python & VS Code
+# .gitignore file
 __pycache__/
 *.py[cod]
-.vscode/
-
-# Environment Variables
 .env
-
-# Virtual Environment (이미 있는 env 폴더 무시)
-env/
-venv/
 .venv/
+dist/
+.vscode/

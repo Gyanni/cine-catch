@@ -1,8 +1,0 @@
-fastapi
-uvicorn[standard]
-sqlalchemy
-asyncpg
-geoalchemy2
-pydantic-settings
-python-dotenv
-greenlet
