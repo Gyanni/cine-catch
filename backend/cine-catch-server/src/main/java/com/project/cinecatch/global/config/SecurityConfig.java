@@ -29,6 +29,7 @@ public class SecurityConfig {
                         .requestMatchers("/", "/health").permitAll()
                         .requestMatchers("/api/events/**").permitAll()
                         .requestMatchers("/api/theaters/**").permitAll()
+                        .requestMatchers("/api/members/signup", "/api/members/login").permitAll() // 가입, 로그인은 누구나 가능~함
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated()
                 );
