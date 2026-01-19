@@ -21,6 +21,7 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final com.project.cinecatch.global.security.JwtTokenProvider jwtTokenProvider;
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
     public void signUp(MemberRequest request) {
@@ -53,6 +54,6 @@ public class MemberService {
         }
 
         // 3. 토큰 생성 및 반환
-        return jwtTokenProvider.createToken(member.getEmail(), member.getRole().name());
+        return jwtTokenProvider.createToken(member.getEmail(), member.getRole());
     }
 }
