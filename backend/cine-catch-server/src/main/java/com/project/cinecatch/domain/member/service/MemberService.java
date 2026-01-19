@@ -53,6 +53,5 @@ public class MemberService {
         }
 
         // 3. 토큰 생성 및 반환
-        return jwtTokenProvider.createToken(member.getEmail(), member.getRole().name());
     }
 }
