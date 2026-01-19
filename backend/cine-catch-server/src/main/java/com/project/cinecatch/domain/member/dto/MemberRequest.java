@@ -25,10 +25,3 @@ public class MemberRequest {
     private Double longitude;
 }
 
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-public class LoginRequest {
-    private String email;
-    private String password;
-}
