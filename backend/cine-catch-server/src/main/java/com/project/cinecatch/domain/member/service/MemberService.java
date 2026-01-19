@@ -5,6 +5,7 @@ import com.project.cinecatch.domain.member.dto.MemberRequest;
 import com.project.cinecatch.domain.member.dto.TokenResponse;
 import com.project.cinecatch.domain.member.entity.Member;
 import com.project.cinecatch.domain.member.repository.MemberRepository;
+import com.project.cinecatch.global.security.JwtTokenProvider;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.locationtech.jts.geom.Coordinate;
@@ -21,6 +22,7 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider; // 토큰 만드는 클래스
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
     public void signUp(MemberRequest request) {
@@ -53,5 +55,6 @@ public class MemberService {
         }
 
         // 3. 토큰 생성 및 반환
+        return jwtTokenProvider.createToken(member.getEmail(), member.getRole());
     }
 }
