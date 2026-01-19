@@ -25,12 +25,3 @@ public class MemberResponse {
                 .build();
     }
 }
-
-@Getter
-@AllArgsConstructor
-@Builder
-public class TokenResponse {
-    private String grantType;     // 보통 "Bearer"라고 보냄
-    private String accessToken;   // 실제 권한을 주는 토큰
-    private Long accessTokenExpiresIn; // 만료 시간
-}
