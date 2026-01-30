@@ -74,3 +74,11 @@ module "serverless" {
   environment  = var.environment
   db_password  = var.db_password
 }
+
+# 5. 프론트엔드 CDN (S3 + CloudFront)
+module "cdn" {
+  source       = "./modules/cdn"
+  project_name = var.project_name
+  domain_name  = var.domain_name
+  environment  = var.environment
+}

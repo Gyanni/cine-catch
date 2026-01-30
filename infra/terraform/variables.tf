@@ -26,3 +26,9 @@ variable "key_name" {
   type        = string
   default     = ""
 }
+
+variable "domain_name" {
+  description = "Frontend Domain Name"
+  type        = string
+  default     = "cine-catch.com"
+}

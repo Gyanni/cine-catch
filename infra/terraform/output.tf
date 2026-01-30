@@ -26,3 +26,19 @@ output "ssh_command" {
   description = "EC2 SSH 접속 명령어"
   value       = "ssh -i ${module.compute.private_key_path} ec2-user@${module.compute.web_server_ip}"
 }
+
+# Frontend CDN outputs
+output "frontend_s3_bucket" {
+  description = "프론트엔드 S3 버킷 이름"
+  value       = module.cdn.s3_bucket_name
+}
+
+output "cloudfront_distribution_id" {
+  description = "CloudFront 배포 ID"
+  value       = module.cdn.cloudfront_distribution_id
+}
+
+output "frontend_url" {
+  description = "프론트엔드 URL"
+  value       = module.cdn.website_url
+}
