@@ -1,0 +1,134 @@
+name: Terraform CDN
+
+# 배포 프로세스:
+# 1. 첫 번째 실행: ACM 인증서 생성 → CloudFront 실패 (인증서 미검증)
+# 2. 수동 작업: Route 53에 인증서 검증 CNAME 레코드 추가
+# 3. 두 번째 실행: CloudFront 생성 성공
+# 4. 수동 작업: Route 53에 도메인 A 레코드 추가
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/terraform/modules/cdn/**'
+      - 'infra/terraform/environments/cdn/**'
+      - '.github/workflows/terraform-cdn.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'infra/terraform/modules/cdn/**'
+      - 'infra/terraform/environments/cdn/**'
+  workflow_dispatch: # 수동 실행 가능
+
+env:
+  TF_WORKING_DIR: infra/terraform/environments/cdn
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      # State용 S3 버킷이 없으면 생성
+      - name: Create Terraform state bucket if not exists
+        run: |
+          if ! aws s3api head-bucket --bucket cine-catch-terraform-state 2>/dev/null; then
+            echo "Creating Terraform state bucket..."
+            aws s3api create-bucket \
+              --bucket cine-catch-terraform-state \
+              --region ap-northeast-2 \
+              --create-bucket-configuration LocationConstraint=ap-northeast-2
+            aws s3api put-bucket-versioning \
+              --bucket cine-catch-terraform-state \
+              --versioning-configuration Status=Enabled
+          else
+            echo "Terraform state bucket already exists"
+          fi
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init
+
+      - name: Terraform Format Check
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform fmt -check
+        continue-on-error: true
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform plan -no-color -out=tfplan
+        continue-on-error: true
+
+      # PR에 plan 결과 코멘트
+      - name: Comment Plan on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const output = `#### Terraform Plan 📖
+
+            \`\`\`
+            ${{ steps.plan.outputs.stdout }}
+            \`\`\`
+
+            *Pushed by: @${{ github.actor }}*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+      # main 브랜치 push일 때만 apply
+      - name: Terraform Apply
+        id: apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform apply -auto-approve tfplan
+        continue-on-error: true  # 인증서 미검증 시 CloudFront 실패 허용
+
+      # Apply 결과 출력 (성공/실패 모두)
+      - name: Terraform Outputs
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          echo "## Terraform Apply Result" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.apply.outcome }}" == "failure" ]; then
+            echo "⚠️ **Apply 실패** - ACM 인증서 검증이 필요할 수 있습니다." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 다음 단계:" >> $GITHUB_STEP_SUMMARY
+            echo "1. 아래 CNAME 레코드를 Route 53에 추가하세요" >> $GITHUB_STEP_SUMMARY
+            echo "2. 인증서 검증 완료 후 워크플로우를 다시 실행하세요" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "### Outputs" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          terraform output 2>/dev/null || echo "No outputs available yet"
+          terraform output >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No outputs available yet" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      # 최종 상태 확인
+      - name: Check Apply Status
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.apply.outcome == 'failure'
+        run: |
+          echo "::warning::Terraform apply failed. This may be expected if ACM certificate is pending validation."
+          echo "Please add the certificate validation CNAME records to Route 53 and re-run this workflow."
